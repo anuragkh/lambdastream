@@ -59,7 +59,7 @@ class Stream(object):
 
     def run(self):
         if self.stages.get_stage(-1).op_type != 'sink':
-            self._add_stage('sink', noop, self.parallelism, self.partitioner_cls)
+            self._add_stage('sink', noop, self.parallelism, self.batch_size, self.partitioner_cls)
         dag, channels = self.stages.build()
         [channel.init() for channel in channels]
         self.ctx.executor.exec(dag)
