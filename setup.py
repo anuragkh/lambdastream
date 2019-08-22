@@ -14,5 +14,5 @@ setup(
     ext_modules=cythonize('lambdastream/*.pyx'),
     setup_requires=['pytest-runner>=2.0,<4.0'],
     tests_require=['pytest-cov', 'pytest>2.0,<4.0'],
-    install_requires=['redis', 'cloudpickle', 'Cython', 'numpy', 'thrift', 'pyarrow', 'msgpack']
+    install_requires=['redis', 'cloudpickle', 'Cython', 'numpy', 'thrift', 'pyarrow', 'msgpack', 'psutil']
 )
