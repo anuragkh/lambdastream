@@ -1,0 +1,134 @@
+#include "storage_management_service_handler.h"
+#include "jiffy/utils/logger.h"
+
+namespace jiffy {
+namespace storage {
+
+using namespace jiffy::utils;
+
+storage_management_service_handler::storage_management_service_handler(std::vector<std::shared_ptr<block>> &blocks)
+    : blocks_(blocks) {}
+
+void storage_management_service_handler::create_partition(int32_t block_id,
+                                                          const std::string &type,
+                                                          const std::string &name,
+                                                          const std::string &metadata,
+                                                          const std::map<std::string, std::string> &conf) {
+  try {
+    blocks_.at(static_cast<std::size_t>(block_id))->setup(type, name, metadata, utils::property_map(conf));
+  } catch (std::exception &e) {
+    LOG(log_level::info) << "Caught exception: " << e.what();
+    throw make_exception(e);
+  }
+}
+
+void storage_management_service_handler::setup_chain(int32_t block_id,
+                                                     const std::string &path,
+                                                     const std::vector<std::string> &chain,
+                                                     int32_t chain_role,
+                                                     const std::string &next_block_name) {
+  try {
+    blocks_.at(static_cast<std::size_t>(block_id))->impl()->setup(path, chain,
+                                                                  static_cast<storage::chain_role>(chain_role),
+                                                                  next_block_name);
+  } catch (std::exception &e) {
+    throw make_exception(e);
+  }
+}
+
+void storage_management_service_handler::destroy_partition(int32_t block_id) {
+  try {
+    blocks_.at(static_cast<std::size_t>(block_id))->destroy();
+  } catch (std::exception &e) {
+    throw make_exception(e);
+  }
+}
+
+void storage_management_service_handler::get_path(std::string &_return, const int32_t block_id) {
+  try {
+    _return = blocks_.at(static_cast<std::size_t>(block_id))->impl()->path();
+  } catch (std::exception &e) {
+    throw make_exception(e);
+  }
+}
+
+void storage_management_service_handler::dump(int32_t block_id, const std::string &backing_path) {
+  try {
+    blocks_.at(static_cast<std::size_t>(block_id))->impl()->dump(backing_path);
+  } catch (std::exception &e) {
+    throw make_exception(e);
+  }
+}
+
+void storage_management_service_handler::sync(int32_t block_id, const std::string &backing_path) {
+  try {
+    blocks_.at(static_cast<std::size_t>(block_id))->impl()->sync(backing_path);
+  } catch (std::exception &e) {
+    throw make_exception(e);
+  }
+}
+
+void storage_management_service_handler::load(int32_t block_id, const std::string &backing_path) {
+  try {
+    blocks_.at(static_cast<std::size_t>(block_id))->impl()->load(backing_path);
+  } catch (std::exception &e) {
+    throw make_exception(e);
+  }
+}
+
+int64_t storage_management_service_handler::storage_capacity(int32_t block_id) {
+  try {
+    return static_cast<int64_t>(blocks_.at(static_cast<std::size_t>(block_id))->capacity());
+  } catch (std::exception &e) {
+    throw make_exception(e);
+  }
+}
+
+int64_t storage_management_service_handler::storage_size(int32_t block_id) {
+  try {
+    return static_cast<int64_t>(blocks_.at(static_cast<std::size_t>(block_id))->impl()->storage_size());
+  } catch (std::exception &e) {
+    throw make_exception(e);
+  }
+}
+
+void storage_management_service_handler::resend_pending(const int32_t block_id) {
+  try {
+    blocks_.at(static_cast<std::size_t>(block_id))->impl()->resend_pending();
+  } catch (std::exception &e) {
+    throw make_exception(e);
+  }
+}
+
+void storage_management_service_handler::forward_all(const int32_t block_id) {
+  try {
+    blocks_.at(static_cast<std::size_t>(block_id))->impl()->forward_all();
+  } catch (std::exception &e) {
+    throw make_exception(e);
+  }
+}
+
+void storage_management_service_handler::update_partition_data(const int32_t block_id,
+                                                               const std::string &partition_name,
+                                                               const std::string &partition_metadata) {
+  try {
+    blocks_.at(static_cast<std::size_t>(block_id))->impl()->set_name_and_metadata(partition_name, partition_metadata);
+  } catch (std::exception &e) {
+    throw make_exception(e);
+  }
+}
+
+storage_management_exception storage_management_service_handler::make_exception(std::exception &e) {
+  storage_management_exception ex;
+  ex.msg = e.what();
+  return ex;
+}
+
+storage_management_exception storage_management_service_handler::make_exception(const std::string &msg) {
+  storage_management_exception ex;
+  ex.msg = msg;
+  return ex;
+}
+
+}
+}
