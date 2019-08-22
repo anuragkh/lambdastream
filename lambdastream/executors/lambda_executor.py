@@ -1,3 +1,4 @@
+import codecs
 import json
 import logging
 import cloudpickle
@@ -12,9 +13,8 @@ logging.basicConfig(level=LOG_LEVEL,
 
 
 def operator_handler(event, context):
-    logger = logging.getLogger(__name__)
-    logger.debug('event: {}, context: {}'.format(event, context))
-    operator = cloudpickle.loads(event.get('stream_operator'))
+    pickled = event.get('stream_operator')
+    operator = cloudpickle.loads(codecs.decode(pickled.encode(), 'base64'))
     out = operator.run()
 
     bucket = boto3.resource('s3').Bucket(event.get('bucket'))
@@ -29,7 +29,9 @@ class Lambda(object):
 
     def start(self):
         logging.warning('Function must exist before invocation')
-        e = dict(stream_operator=cloudpickle.dumps(self.operator), bucket=self.bucket)
+        pickled = cloudpickle.dumps(self.operator)
+        e = dict(stream_operator=cloudpickle.loads(codecs.decode(pickled.encode(), 'base64')).decode(),
+                 bucket=self.bucket)
         boto3.client('lambda').invoke(FunctionName=self.function_name,
                                       InvocationType='Event',
                                       Payload=json.dumps(e))
