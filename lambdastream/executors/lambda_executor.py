@@ -17,20 +17,27 @@ def operator_handler(event, context):
     host = event.get('host')
     port = LambdaExecutor.SYNC_PORT
 
+    print('Creating stream_operator from file: {}'.format(operator_in))
     bucket = boto3.resource('s3').Bucket(S3_BUCKET_NAME)
     operator_binary = bucket.get_object(Key=operator_in)
     operator = cloudpickle.loads(operator_binary)
     assert operator.operator_id == operator_id, "Loaded operator does not match provided operator"
+    print('Successfully reconstructed {} object'.format(operator.__class__.__name__))
 
+    print('Connecting to host: {}, port: {} for synchronization...')
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((host, port))
 
+    print('Sending READY message...')
     sock.send(b('READY:{}'.format(operator_id)))
     msg = sock.recv(1024)
     if msg != b('RUN'):
         print('Aborting operator...')
+    print('Running operator...')
     operator_out = operator.run()
+    print('Outputting output to S3...')
     bucket.put_object(Key=operator.operator_id + '.out', Body=cloudpickle.dumps(operator_out))
+    print('All done!')
 
 
 class Lambda(object):
@@ -40,8 +47,11 @@ class Lambda(object):
         self.lambda_client = boto3.client('lambda')
 
     def start(self):
-        self.s3_bucket.put_object(Key=self.operator.operator_id + '.in', Body=cloudpickle.dumps(self.operator))
+        pickled = cloudpickle.dumps(self.operator)
+        print('Writing pickled operator for {} to S3 ({} bytes)...'.format(self.operator.operator_id, len(pickled)))
+        self.s3_bucket.put_object(Key=self.operator.operator_id + '.in', Body=pickled)
         e = dict(stream_operator=self.operator.operator_id, host=socket.gethostname())
+        print('Invoking lambda with payload: {}...'.format(e))
         self.lambda_client.invoke(FunctionName=LAMBDA_FUNCTION_NAME, InvocationType='Event', Payload=json.dumps(e))
 
     def join(self):
@@ -66,10 +76,14 @@ class LambdaExecutor(Executor):
                 lambdas.append(lambda_handle)
                 lambda_handle.start()
 
+        print('Invoked {} lambdas, starting synchronization...'.format(len(lambdas)))
         self.synchronize_operators(len(lambdas))
+        print('Synchronization complete, waiting for lambdas to finish...')
 
         for l in lambdas:
             l.join()
+
+        print('All lambdas completed')
 
     @staticmethod
     def synchronize_operators(operator_count):
