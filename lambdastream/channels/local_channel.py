@@ -1,7 +1,7 @@
 import queue
 
-from lambdastream.channel import DataChannelContext, InputChannel, OutputChannel, output_channel, input_channel, \
-    channel_context
+from lambdastream.channels.channel import DataChannelContext, InputChannel, OutputChannel, output_channel, \
+    input_channel, channel_context
 
 
 @channel_context('local')

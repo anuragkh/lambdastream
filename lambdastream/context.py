@@ -1,9 +1,9 @@
 import logging
 
-from lambdastream.channel import ChannelBuilder, REGISTERED_CHANNELS
+from lambdastream.channels.channel import ChannelBuilder, REGISTERED_CHANNELS
 from lambdastream.config import LOG_LEVEL
 from lambdastream.dag import DAGBuilder
-from lambdastream.executor import REGISTERED_EXECUTORS
+from lambdastream.executors.executor import REGISTERED_EXECUTORS
 from lambdastream.operator import RoundRobinPartitioner
 from lambdastream.stream import Stream
 
@@ -20,10 +20,10 @@ class StreamContext(object):
         self.executor = REGISTERED_EXECUTORS[executor]()
         self.channel_args = kwargs
 
-        channel = kwargs.get('channel', 'local')
+        channel = kwargs.get('channels', 'local')
         if channel == 'local':
             if executor != 'local':
-                raise ValueError('local channel can only be used with local executor, provided: {}'.format(executor))
+                raise ValueError('local channels can only be used with local executor, provided: {}'.format(executor))
             self.channel_args['queue_dict'] = dict()
 
         self.batch_size = kwargs.setdefault('batch_size', 1)

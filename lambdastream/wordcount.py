@@ -3,9 +3,8 @@ import time
 
 import msgpack
 import numpy as np
-import psutil
 
-from lambdastream.channel import REGISTERED_CHANNELS, ChannelBuilder
+from lambdastream.channels.channel import REGISTERED_CHANNELS, ChannelBuilder
 from lambdastream.constants import DONE_MARKER
 from lambdastream.wordcount_ops import cython_process_batch_reduce, cython_process_batch_map
 
@@ -15,12 +14,7 @@ WORDS = {}
 
 class WordSource(object):
     def __init__(self, idx, op_id, out_queue_ids, batch_size, channel_builder, words_file, timestamp_interval,
-                 num_records, cpu_indices):
-        p = psutil.Process()
-        cpu_affinity = getattr(p, "cpu_affinity", None)
-        if callable(cpu_affinity):
-            cpu_affinity(cpu_indices)
-
+                 num_records):
         self.idx = idx
         self.operator_id = op_id
 
@@ -75,12 +69,7 @@ class WordSource(object):
 
 
 class StreamOperator(object):
-    def __init__(self, idx, op_id, out_op_ids, upstream_count, channel_builder, cpu_indices):
-        p = psutil.Process()
-        cpu_affinity = getattr(p, "cpu_affinity", None)
-        if callable(cpu_affinity):
-            cpu_affinity(cpu_indices)
-
+    def __init__(self, idx, op_id, out_op_ids, upstream_count, channel_builder):
         self.idx = idx
         self.operator_id = op_id
         self.in_queue = channel_builder.build_input_channel(op_id)
@@ -180,7 +169,7 @@ class Sink(StreamOperator):
 
 
 def build_dag(**kwargs):
-    channel = kwargs.get('channel', 'redis')
+    channel = kwargs.get('channels', 'redis')
     num_mappers = kwargs.get('num_mappers', 1)
     num_reducers = kwargs.get('num_reducers', 1)
     batch_size = kwargs.get('batch_size', 64)
@@ -204,21 +193,21 @@ def build_dag(**kwargs):
     # Create the sink.
     sinks = []
     for i, sink_key in enumerate(sink_keys):
-        sink_args = [i, sink_key, [], num_reducers, channel_builder, [1]]
+        sink_args = [i, sink_key, [], num_reducers, channel_builder]
         print("Creating sink", sink_key)
         sinks.append(Sink(*sink_args))
 
     # Create the reducers.
     reducers = []
     for i, reducer_key in enumerate(reducer_keys):
-        reducer_args = [i, reducer_key, sink_keys, num_mappers, channel_builder, [3]]
+        reducer_args = [i, reducer_key, sink_keys, num_mappers, channel_builder]
         print("Creating reducer", reducer_key, "downstream:", sink_keys)
         reducers.append(Reducer(*reducer_args))
 
     # Create the intermediate operators.
     mappers = []
     for i, mapper_key in enumerate(mapper_keys):
-        mapper_args = [i, mapper_key, reducer_keys, num_mappers, channel_builder, [2]]
+        mapper_args = [i, mapper_key, reducer_keys, num_mappers, channel_builder]
         print("Creating mapper", mapper_key, "downstream:", reducer_keys)
         mappers.append(Mapper(*mapper_args))
 
@@ -226,7 +215,7 @@ def build_dag(**kwargs):
     sources = []
     for i, source_key in enumerate(source_keys):
         source_args = [i, source_key, mapper_keys, batch_size, channel_builder, words_file, timestamp_interval,
-                       num_records, [1]]
+                       num_records]
         print("Creating source", source_key, "downstream:", mapper_keys)
         sources.append(WordSource(*source_args))
 

@@ -1,6 +1,6 @@
 from multiprocessing import Process
 
-from lambdastream.executor import Executor, executor
+from lambdastream.executors.executor import Executor, executor
 
 
 @executor('process')

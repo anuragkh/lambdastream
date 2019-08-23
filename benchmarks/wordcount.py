@@ -2,7 +2,7 @@ import argparse
 import logging
 import time
 
-from lambdastream.executor import REGISTERED_EXECUTORS
+from lambdastream.executors.executor import REGISTERED_EXECUTORS
 from lambdastream.wordcount import build_dag
 
 SENTENCE_LENGTH = 100
@@ -21,7 +21,7 @@ def main():
         help='The executor to use for stream operators'
     )
     parser.add_argument(
-        '--channel',
+        '--channels',
         default='redis',
         type=str,
         help='The data channels to use between stream operators'

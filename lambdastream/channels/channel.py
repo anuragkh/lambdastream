@@ -12,7 +12,7 @@ REGISTERED_CHANNELS = dict()
 
 def input_channel(channel_name):
     def register(channel_cls):
-        logging.info('Registered input channel class {} for {}'.format(channel_cls, channel_name))
+        logging.info('Registered input channels class {} for {}'.format(channel_cls, channel_name))
         REGISTERED_CHANNELS.setdefault(channel_name, dict())['input_channel'] = channel_cls
         return channel_cls
 
@@ -21,7 +21,7 @@ def input_channel(channel_name):
 
 def output_channel(channel_name):
     def register(channel_cls):
-        logging.info('Registered output channel class {} for {}'.format(channel_cls, channel_name))
+        logging.info('Registered output channels class {} for {}'.format(channel_cls, channel_name))
         REGISTERED_CHANNELS.setdefault(channel_name, dict())['output_channel'] = channel_cls
         return channel_cls
 
@@ -30,7 +30,7 @@ def output_channel(channel_name):
 
 def channel_context(channel_name):
     def register(channel_cls):
-        logging.info('Registered channel context class {} for {}'.format(channel_cls, channel_name))
+        logging.info('Registered channels context class {} for {}'.format(channel_cls, channel_name))
         REGISTERED_CHANNELS.setdefault(channel_name, dict())['channel_context'] = channel_cls
         return channel_cls
 

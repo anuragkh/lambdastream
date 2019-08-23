@@ -1,68 +1,32 @@
-import json
 import select
 import socket
 import sys
 
-import boto3
 import cloudpickle
 
+from lambdastream.aws.utils import invoke_lambda, write_to_s3, wait_for_s3_object
 from lambdastream.channels.jiffy.storage.compat import bytes_to_str, b
-from lambdastream.config import LAMBDA_FUNCTION_NAME, S3_BUCKET_NAME
-from lambdastream.executor import Executor, executor
-
-
-def operator_handler(event, context):
-    operator_id = event.get('stream_operator')
-    operator_in = operator_id + '.in'
-    host = event.get('host')
-    port = LambdaExecutor.SYNC_PORT
-
-    print('Creating stream_operator from file: {}'.format(operator_in))
-    bucket = boto3.resource('s3').Bucket(S3_BUCKET_NAME)
-    operator_binary = bucket.get_object(Key=operator_in)
-    operator = cloudpickle.loads(operator_binary)
-    assert operator.operator_id == operator_id, "Loaded operator does not match provided operator"
-    print('Successfully reconstructed {} object'.format(operator.__class__.__name__))
-
-    print('Connecting to host: {}, port: {} for synchronization...')
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect((host, port))
-
-    print('Sending READY message...')
-    sock.send(b('READY:{}'.format(operator_id)))
-    msg = sock.recv(1024)
-    if msg != b('RUN'):
-        print('Aborting operator...')
-    print('Running operator...')
-    operator_out = operator.run()
-    print('Outputting output to S3...')
-    bucket.put_object(Key=operator.operator_id + '.out', Body=cloudpickle.dumps(operator_out))
-    print('All done!')
+from lambdastream.executors.executor import Executor, executor
 
 
 class Lambda(object):
     def __init__(self, operator):
         self.operator = operator
-        self.s3_bucket = boto3.resource('s3').Bucket(S3_BUCKET_NAME)
-        self.lambda_client = boto3.client('lambda')
 
     def start(self):
         pickled = cloudpickle.dumps(self.operator)
         print('Writing pickled operator for {} to S3 ({} bytes)...'.format(self.operator.operator_id, len(pickled)))
-        self.s3_bucket.put_object(Key=self.operator.operator_id + '.in', Body=pickled)
+        write_to_s3(self.operator.operator_id + '.in', pickled)
         e = dict(stream_operator=self.operator.operator_id, host=socket.gethostname())
-        print('Invoking lambda with payload: {}...'.format(e))
-        self.lambda_client.invoke(FunctionName=LAMBDA_FUNCTION_NAME, InvocationType='Event', Payload=json.dumps(e))
+        print('Invoking aws with payload: {}...'.format(e))
+        invoke_lambda(e)
 
     def join(self):
-        waiter = boto3.client('s3').get_waiter('object_exists')
-        waiter.wait(Bucket=S3_BUCKET_NAME, Key=self.operator.operator_id, WaiterConfig={'Delay': 1, 'MaxAttempts': 900})
+        wait_for_s3_object(self.operator.operator_id + '.out')
 
 
-@executor('lambda')
+@executor('aws_lambda')
 class LambdaExecutor(Executor):
-    SYNC_PORT = 11001
-
     def __init__(self):
         super(LambdaExecutor, self).__init__()
 

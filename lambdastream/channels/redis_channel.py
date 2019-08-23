@@ -1,7 +1,7 @@
 import redis
 
-from lambdastream.channel import DataChannelContext, InputChannel, OutputChannel, channel_context, input_channel, \
-    output_channel
+from lambdastream.channels.channel import DataChannelContext, InputChannel, OutputChannel, output_channel, \
+    input_channel, channel_context
 
 
 @channel_context('redis')

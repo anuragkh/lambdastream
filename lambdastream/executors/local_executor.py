@@ -1,6 +1,6 @@
 from threading import Thread
 
-from lambdastream.executor import Executor, executor
+from lambdastream.executors.executor import Executor, executor
 
 
 @executor('local')
