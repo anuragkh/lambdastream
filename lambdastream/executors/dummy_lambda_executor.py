@@ -20,6 +20,8 @@ class DummyLambda(object):
         self.operator = operator
         self.host = host
         self.handle = None
+        self.thput = None
+        self.lat = None
 
     def start(self):
         pickled = cloudpickle.dumps(self.operator)
@@ -32,10 +34,13 @@ class DummyLambda(object):
 
     def join(self):
         wait_for_s3_object(self.operator.operator_id + '.out')
-        self.handle.join()
+        self.thput, self.lat = cloudpickle.loads(read_from_s3(self.operator.operator_id + '.out'))
 
     def throughput(self):
-        return cloudpickle.loads(read_from_s3(self.operator.operator_id + '.out'))
+        return self.thput
+
+    def latency(self):
+        return self.lat
 
 
 @executor('dummy_lambda')
@@ -64,4 +69,5 @@ class DummyLambdaExecutor(Executor):
             l.join()
 
         print('All lambdas completed')
-        return {l.operator.operator_id: l.throughput() for l in lambdas}
+        return {l.operator.operator_id: l.throughput() for l in lambdas}, {l.operator.operator_id: l.latency() for l in
+                                                                           lambdas if l.latency() is not None}

@@ -144,7 +144,7 @@ class Source(Operator):
                 self.num_processed += len(record_batch)
                 self.num_batches += 1
 
-        return self.num_processed / (time.time() - start_time)
+        return self.num_processed / (time.time() - start_time), None
 
 
 @operator('sink')
@@ -173,7 +173,7 @@ class Sink(Operator):
             else:
                 [self.op_fn(record) for record in record_batch]
                 self.num_processed += len(record_batch)
-        return self.num_processed / (time.time() - start_time)
+        return self.num_processed / (time.time() - start_time), None
 
 
 class SingleInputOperator(Operator, ABC):
@@ -208,7 +208,7 @@ class SingleInputOperator(Operator, ABC):
                 self.process_batch(record_batch)
                 self.num_processed += len(record_batch)
 
-        return self.num_processed / (time.time() - start_time)
+        return self.num_processed / (time.time() - start_time), None
 
     def process_batch(self, record_batch):
         processed_batch = [self.op_fn(record) for record in record_batch]

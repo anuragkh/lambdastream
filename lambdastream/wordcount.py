@@ -59,7 +59,7 @@ class WordSource(object):
         timestamp = time.time()
         [q.put(msgpack.packb((timestamp, DONE_MARKER))) for q in self.out_queues]
         [q.flush() for q in self.out_queues]
-        return self.num_records_seen / (time.time() - start_time)  # Throughput
+        return self.num_records_seen / (time.time() - start_time), None
 
     def num_records_seen(self):
         return self.num_records_seen
@@ -101,7 +101,7 @@ class StreamOperator(object):
                 for q in self.out_queues:
                     q.put(msgpack.packb((timestamp, DONE_MARKER)))
                     q.flush()
-        return self.num_records_seen / (time.time() - start_time)  # Throughput
+        return self.num_records_seen / (time.time() - start_time), None
 
     def ping(self):
         return
@@ -166,8 +166,9 @@ class Sink(StreamOperator):
             self.latencies.append(time.time() - timestamp)
         return []
 
-    def flush_latencies(self):
-        return self.latencies
+    def run(self):
+        throughput, _ = super(Sink, self).run()
+        return throughput, self.latencies
 
 
 def build_dag(**kwargs):
