@@ -14,7 +14,7 @@ WORDS = {}
 
 
 class WordSource(object):
-    def __init__(self, idx, out_queue_ids, batch_size, channel_builder, words_file, timestamp_interval,
+    def __init__(self, idx, op_id, out_queue_ids, batch_size, channel_builder, words_file, timestamp_interval,
                  num_records, cpu_indices):
         p = psutil.Process()
         cpu_affinity = getattr(p, "cpu_affinity", None)
@@ -74,15 +74,15 @@ class WordSource(object):
 
 
 class StreamOperator(object):
-    def __init__(self, idx, in_queue_id, out_queue_ids, upstream_count, channel_builder, cpu_indices):
+    def __init__(self, idx, op_id, out_op_ids, upstream_count, channel_builder, cpu_indices):
         p = psutil.Process()
         cpu_affinity = getattr(p, "cpu_affinity", None)
         if callable(cpu_affinity):
             cpu_affinity(cpu_indices)
 
         self.idx = idx
-        self.in_queue = channel_builder.build_input_channel(in_queue_id)
-        self.out_queues = [channel_builder.build_output_channel(name) for name in out_queue_ids]
+        self.in_queue = channel_builder.build_input_channel(op_id)
+        self.out_queues = [channel_builder.build_output_channel(name) for name in out_op_ids]
         self.num_out = len(self.out_queues)
         self.upstream_count = upstream_count
         self.num_done_markers = 0
@@ -223,7 +223,8 @@ def build_dag(**kwargs):
     # Create the sources.
     sources = []
     for i, source_key in enumerate(source_keys):
-        source_args = [i, mapper_keys, batch_size, channel_builder, words_file, timestamp_interval, num_records, [1]]
+        source_args = [i, source_key, mapper_keys, batch_size, channel_builder, words_file, timestamp_interval,
+                       num_records, [1]]
         print("Creating source", source_key, "downstream:", mapper_keys)
         sources.append(WordSource(*source_args))
 
