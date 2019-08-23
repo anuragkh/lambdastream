@@ -128,6 +128,8 @@ class Source(Operator):
         done = False
         for q in self.output:
             q.connect()
+
+        start_time = time.time()
         while not done:
             record_batch = self.op_fn(self.batch_size)
             timestamp = 0
@@ -141,6 +143,8 @@ class Source(Operator):
                 self.partitioner.partition_batch(self.output_buffers, record_batch)
                 self.num_processed += len(record_batch)
                 self.num_batches += 1
+
+        return self.num_processed / (time.time() - start_time)
 
 
 @operator('sink')
@@ -156,6 +160,7 @@ class Sink(Operator):
     def run(self):
         done = False
         self.input.connect()
+        start_time = time.time()
         while not done:
             timestamp, record_batch = msgpack.unpackb(self.input.get())
             if timestamp > 0:
@@ -168,7 +173,7 @@ class Sink(Operator):
             else:
                 [self.op_fn(record) for record in record_batch]
                 self.num_processed += len(record_batch)
-        return self.op_fn
+        return self.num_processed / (time.time() - start_time)
 
 
 class SingleInputOperator(Operator, ABC):
@@ -189,6 +194,7 @@ class SingleInputOperator(Operator, ABC):
         self.input.connect()
         for q in self.output:
             q.connect()
+        start_time = time.time()
         while not done:
             timestamp, record_batch = msgpack.unpackb(self.input.get())
             if timestamp > 0:
@@ -202,7 +208,7 @@ class SingleInputOperator(Operator, ABC):
                 self.process_batch(record_batch)
                 self.num_processed += len(record_batch)
 
-        return self.state
+        return self.num_processed / (time.time() - start_time)
 
     def process_batch(self, record_batch):
         processed_batch = [self.op_fn(record) for record in record_batch]

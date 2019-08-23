@@ -1,11 +1,8 @@
-import select
 import socket
-import sys
 
 import cloudpickle
 
-from lambdastream.aws.config import LAMBDA_SYNC_PORT
-from lambdastream.aws.utils import invoke_lambda, wait_for_s3_object, write_to_s3, synchronize_operators
+from lambdastream.aws.utils import invoke_lambda, wait_for_s3_object, write_to_s3, synchronize_operators, read_from_s3
 from lambdastream.executors.executor import Executor, executor
 
 
@@ -24,6 +21,9 @@ class Lambda(object):
 
     def join(self):
         wait_for_s3_object(self.operator.operator_id + '.out')
+
+    def throughput(self):
+        return cloudpickle.loads(read_from_s3(self.operator.operator_id + '.out'))
 
 
 @executor('aws_lambda')
@@ -50,3 +50,4 @@ class LambdaExecutor(Executor):
             l.join()
 
         print('All lambdas completed')
+        return {l.throughput(): l.operator.operator_id for l in lambdas}

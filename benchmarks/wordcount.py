@@ -120,10 +120,13 @@ def main():
 
     try:
         start = time.time()
-        word_count.exec(dag)
-        total = time.time() - start
-        throughput = float(args.num_records) / total
-        print('Throughput: {} records/s'.format(throughput))
+        res = word_count.exec(dag)
+        if res is not None:
+            print('Result: {}'.format(res))
+        else:
+            total = time.time() - start
+            throughput = float(args.num_records) / total
+            print('Throughput: {} records/s'.format(throughput))
     finally:
         for ctx in contexts:
             ctx.destroy()
