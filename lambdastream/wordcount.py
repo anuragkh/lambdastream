@@ -84,6 +84,7 @@ class StreamOperator(object):
         for q in self.out_queues:
             q.connect()
         done = False
+        start_time = time.time()
         while not done:
             timestamp, batch = msgpack.unpackb(self.in_queue.get())
             if DONE_MARKER == batch:
@@ -100,6 +101,7 @@ class StreamOperator(object):
                 for q in self.out_queues:
                     q.put(msgpack.packb((timestamp, DONE_MARKER)))
                     q.flush()
+        return self.num_records_seen / (time.time() - start_time)  # Throughput
 
     def ping(self):
         return
@@ -184,10 +186,10 @@ def build_dag(**kwargs):
 
     operator_ids = [a + b for a in list(string.ascii_uppercase) for b in list(string.ascii_uppercase)]
     # One source per mapper.
-    source_keys = [operator_ids.pop(0) for _ in range(num_mappers)]
-    mapper_keys = [operator_ids.pop(0) for _ in range(num_mappers)]
-    reducer_keys = [operator_ids.pop(0) for _ in range(num_reducers)]
-    sink_keys = [operator_ids.pop(0) for _ in range(num_reducers)]
+    source_keys = ['source_{}'.format(i) for i in range(num_mappers)]
+    mapper_keys = ['mapper_{}'.format(i) for i in range(num_mappers)]
+    reducer_keys = ['reducer_{}'.format(i) for i in range(num_reducers)]
+    sink_keys = ['sink_{}'.format(i) for i in range(num_reducers)]
     all_keys = sink_keys + reducer_keys + mapper_keys + source_keys
 
     # Create the sink.
