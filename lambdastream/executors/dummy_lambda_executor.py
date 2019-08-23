@@ -7,7 +7,7 @@ import cloudpickle
 
 from lambdastream.aws.config import LAMBDA_SYNC_PORT
 from lambdastream.aws.lambda_handler import operator_handler
-from lambdastream.aws.utils import invoke_lambda, wait_for_s3_object, write_to_s3
+from lambdastream.aws.utils import invoke_lambda, wait_for_s3_object, write_to_s3, synchronize_operators
 from lambdastream.executors.executor import Executor, executor
 
 
@@ -29,7 +29,7 @@ class DummyLambda(object):
         write_to_s3(self.operator.operator_id + '.in', pickled)
         e = dict(stream_operator=self.operator.operator_id, host=self.host)
         print('Invoking aws with payload: {}...'.format(e))
-        self.handle = Process(target=dummy_handler, args=(e, None, ))
+        self.handle = Process(target=dummy_handler, args=(e, None,))
         self.handle.start()
 
     def join(self):
@@ -54,67 +54,10 @@ class DummyLambdaExecutor(Executor):
                 lambda_handle.start()
 
         print('Invoked {} lambdas, starting synchronization...'.format(len(lambdas)))
-        self.synchronize_operators(self.host, len(lambdas))
+        synchronize_operators(self.host, len(lambdas))
         print('Synchronization complete, waiting for lambdas to finish...')
 
         for l in lambdas:
             l.join()
 
         print('All lambdas completed')
-
-    @staticmethod
-    def synchronize_operators(host, operator_count):
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        s.setblocking(False)
-        s.settimeout(300)
-        try:
-            s.bind((host, LAMBDA_SYNC_PORT))
-        except socket.error as ex:
-            print('Bind failed: {}'.format(ex))
-            sys.exit()
-        s.listen(5)
-        inputs = [s]
-        outputs = []
-        ready = []
-        ids = set()
-        run = True
-        while run:
-            readable, writable, exceptional = select.select(inputs, outputs, inputs)
-            for r in readable:
-                if r is s:
-                    sock, address = r.accept()
-                    sock.setblocking(False)
-                    inputs.append(sock)
-                else:
-                    data = r.recv(4096)
-                    msg = data.rstrip().lstrip()
-                    if not data:
-                        inputs.remove(r)
-                        r.close()
-                    else:
-                        print('DEBUG: [{}]'.format(msg))
-                        op = int(msg.split(b'READY:')[1])
-                        print('... Operator={} ready ...'.format(op))
-                        if op not in ids:
-                            print('... Queuing function id={} ...'.format(op))
-                            ids.add(op)
-                            ready.append((op, r))
-                            if len(ids) == operator_count:
-                                run = False
-                            else:
-                                print('.. Progress {}/{}'.format(len(ids), operator_count))
-                        else:
-                            print('... Aborting function id={} ...'.format(op))
-                            r.send(b'ABORT')
-                            inputs.remove(r)
-                            r.close()
-
-        print('.. Starting benchmark ..')
-        ready.sort(key=lambda x: x[0])
-        for op in range(operator_count):
-            op, sock = ready[op]
-            print('... Running Operator={} ...'.format(op))
-            sock.send(b'RUN')
-
-        s.close()
