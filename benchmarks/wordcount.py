@@ -23,7 +23,7 @@ def main():
         help='The executor to use for stream operators'
     )
     parser.add_argument(
-        '--channels',
+        '--channel',
         default='redis',
         type=str,
         help='The data channels to use between stream operators'
