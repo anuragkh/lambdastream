@@ -115,7 +115,8 @@ def main():
     dag, contexts = build_dag(**vars(args))
 
     word_count = REGISTERED_EXECUTORS[args.executor](**vars(args))
-    result_prefix = args.channel + '_batch' + args.batch_size + '_mapper' + args.num_mappers + '_reducer' + args.num_reducers
+    result_prefix = args.channel + '_batch' + str(args.batch_size) + '_mapper' + str(
+        args.num_mappers) + '_reducer' + str(args.num_reducers)
 
     for ctx in contexts:
         ctx.init()
