@@ -1,5 +1,6 @@
 import argparse
 import logging
+import socket
 import time
 
 from lambdastream.executors.executor import REGISTERED_EXECUTORS
@@ -25,6 +26,12 @@ def main():
         default='redis',
         type=str,
         help='The data channels to use between stream operators'
+    )
+    parser.add_argument(
+        '--sync-host',
+        default=socket.gethostname(),
+        type=str,
+        help='The host address of jiffy directory server'
     )
     parser.add_argument(
         '--jiffy-host',
@@ -106,7 +113,7 @@ def main():
     args = parser.parse_args()
     dag, contexts = build_dag(**vars(args))
 
-    word_count = REGISTERED_EXECUTORS[args.executor]()
+    word_count = REGISTERED_EXECUTORS[args.executor](**vars(args))
 
     for ctx in contexts:
         ctx.init()

@@ -5,8 +5,8 @@ from lambdastream.executors.executor import Executor, executor
 
 @executor('local')
 class LocalExecutor(Executor):
-    def __init__(self):
-        super(LocalExecutor, self).__init__()
+    def __init__(self, **kwargs):
+        super(LocalExecutor, self).__init__(**kwargs)
 
     def exec(self, dag):
         threads = []

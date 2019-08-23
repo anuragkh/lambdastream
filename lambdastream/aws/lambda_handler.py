@@ -4,7 +4,6 @@ from cloudpickle import cloudpickle
 
 from lambdastream.aws.config import LAMBDA_SYNC_PORT
 from lambdastream.aws.s3_backend import S3Backend
-from lambdastream.aws.utils import read_from_s3, write_to_s3
 
 
 def operator_handler(event, context):
@@ -21,7 +20,7 @@ def operator_handler(event, context):
     assert operator.operator_id == operator_id, 'Loaded operator does not match provided operator'
     print('Successfully reconstructed {} object'.format(operator.__class__.__name__))
 
-    print('Connecting to host: {}, port: {} for synchronization...')
+    print('Connecting to host: {}, port: {} for synchronization...'.format(host, port))
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((host, port))
 

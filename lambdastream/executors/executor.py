@@ -20,7 +20,7 @@ def executor(name):
 
 
 class Executor(ABC):
-    def __init__(self):
+    def __init__(self, **kwargs):
         pass
 
     @abstractmethod

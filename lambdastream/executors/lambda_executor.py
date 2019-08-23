@@ -6,20 +6,21 @@ import cloudpickle
 
 from lambdastream.aws.config import LAMBDA_SYNC_PORT
 from lambdastream.aws.s3_backend import S3Backend
-from lambdastream.aws.utils import invoke_lambda, write_to_s3, wait_for_s3_object
+from lambdastream.aws.utils import invoke_lambda, wait_for_s3_object
 from lambdastream.executors.executor import Executor, executor
 
 
 class Lambda(object):
-    def __init__(self, operator):
+    def __init__(self, operator, host):
         self.operator = operator
+        self.host = host
         self.s3 = S3Backend()
 
     def start(self):
         pickled = cloudpickle.dumps(self.operator)
         print('Writing pickled operator for {} to S3 ({} bytes)...'.format(self.operator.operator_id, len(pickled)))
         self.s3.put_object(self.operator.operator_id + '.in', pickled)
-        e = dict(stream_operator=self.operator.operator_id, host=socket.gethostname())
+        e = dict(stream_operator=self.operator.operator_id, host=self.host)
         print('Invoking aws with payload: {}...'.format(e))
         invoke_lambda(e)
 
@@ -29,8 +30,9 @@ class Lambda(object):
 
 @executor('aws_lambda')
 class LambdaExecutor(Executor):
-    def __init__(self):
-        super(LambdaExecutor, self).__init__()
+    def __init__(self, **kwargs):
+        super(LambdaExecutor, self).__init__(**kwargs)
+        self.host = kwargs.get('sync_host', socket.gethostname())
 
     def exec(self, dag):
         lambdas = []
@@ -38,12 +40,12 @@ class LambdaExecutor(Executor):
         for i in range(num_stages):
             stage = dag.pop()
             for operator in stage:
-                lambda_handle = Lambda(operator)
+                lambda_handle = Lambda(operator, self.host)
                 lambdas.append(lambda_handle)
                 lambda_handle.start()
 
         print('Invoked {} lambdas, starting synchronization...'.format(len(lambdas)))
-        self.synchronize_operators(len(lambdas))
+        self.synchronize_operators(self.host, len(lambdas))
         print('Synchronization complete, waiting for lambdas to finish...')
 
         for l in lambdas:
@@ -52,13 +54,13 @@ class LambdaExecutor(Executor):
         print('All lambdas completed')
 
     @staticmethod
-    def synchronize_operators(operator_count):
+    def synchronize_operators(host, operator_count):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.setblocking(False)
         s.settimeout(300)
         try:
-            s.bind((socket.gethostname(), LAMBDA_SYNC_PORT))
+            s.bind((host, LAMBDA_SYNC_PORT))
         except socket.error as ex:
             print('Bind failed: {}'.format(ex))
             sys.exit()

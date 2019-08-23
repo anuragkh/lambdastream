@@ -5,8 +5,8 @@ from lambdastream.executors.executor import Executor, executor
 
 @executor('process')
 class ProcessExecutor(Executor):
-    def __init__(self):
-        super(ProcessExecutor, self).__init__()
+    def __init__(self, **kwargs):
+        super(ProcessExecutor, self).__init__(**kwargs)
 
     def exec(self, dag):
         processes = []
