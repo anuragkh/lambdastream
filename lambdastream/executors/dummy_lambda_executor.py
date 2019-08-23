@@ -46,6 +46,7 @@ class DummyLambdaExecutor(Executor):
 
     def exec(self, dag):
         sync_worker = Process(target=synchronize_operators, args=(self.host, sum(map(len, dag))))
+        sync_worker.start()
         lambdas = []
         num_stages = len(dag)
         for i in range(num_stages):
