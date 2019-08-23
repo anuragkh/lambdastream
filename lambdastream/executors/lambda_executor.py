@@ -1,48 +1,58 @@
-import codecs
 import json
-import logging
-import cloudpickle
+import select
+import socket
+import sys
+
 import boto3
+import cloudpickle
 
-from lambdastream.config import LOG_LEVEL, LAMBDA_FUNCTION_NAME, S3_BUCKET_NAME
+from lambdastream.channels.jiffy.storage.compat import bytes_to_str, b
+from lambdastream.config import LAMBDA_FUNCTION_NAME, S3_BUCKET_NAME
 from lambdastream.executor import Executor, executor
-
-logging.basicConfig(level=LOG_LEVEL,
-                    format="%(asctime)s %(levelname)s %(name)s %(message)s",
-                    datefmt="%Y-%m-%d %X")
 
 
 def operator_handler(event, context):
-    pickled = event.get('stream_operator')
-    operator = cloudpickle.loads(codecs.decode(pickled.encode(), 'base64'))
-    out = operator.run()
+    operator_id = event.get('stream_operator')
+    operator_in = operator_id + '.in'
+    host = event.get('host')
+    port = LambdaExecutor.SYNC_PORT
 
-    bucket = boto3.resource('s3').Bucket(event.get('bucket'))
-    bucket.put_object(Key=operator.operator_id, Body=cloudpickle.dumps(out))
+    bucket = boto3.resource('s3').Bucket(S3_BUCKET_NAME)
+    operator_binary = bucket.get_object(Key=operator_in)
+    operator = cloudpickle.loads(operator_binary)
+    assert operator.operator_id == operator_id, "Loaded operator does not match provided operator"
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect((host, port))
+
+    sock.send(b('READY:{}'.format(operator_id)))
+    msg = sock.recv(1024)
+    if msg != b('RUN'):
+        print('Aborting operator...')
+    operator_out = operator.run()
+    bucket.put_object(Key=operator.operator_id + '.out', Body=cloudpickle.dumps(operator_out))
 
 
 class Lambda(object):
-    def __init__(self, operator, function_name, bucket):
+    def __init__(self, operator):
         self.operator = operator
-        self.function_name = function_name
-        self.bucket = bucket
+        self.s3_bucket = boto3.resource('s3').Bucket(S3_BUCKET_NAME)
+        self.lambda_client = boto3.client('lambda')
 
     def start(self):
-        logging.warning('Function must exist before invocation')
-        pickled = cloudpickle.dumps(self.operator)
-        e = dict(stream_operator=cloudpickle.loads(codecs.decode(pickled.encode(), 'base64')).decode(),
-                 bucket=self.bucket)
-        boto3.client('lambda').invoke(FunctionName=self.function_name,
-                                      InvocationType='Event',
-                                      Payload=json.dumps(e))
+        self.s3_bucket.put_object(Key=self.operator.operator_id + '.in', Body=cloudpickle.dumps(self.operator))
+        e = dict(stream_operator=self.operator.operator_id, host=socket.gethostname())
+        self.lambda_client.invoke(FunctionName=LAMBDA_FUNCTION_NAME, InvocationType='Event', Payload=json.dumps(e))
 
     def join(self):
         waiter = boto3.client('s3').get_waiter('object_exists')
-        waiter.wait(Bucket=self.bucket, Key=self.operator.operator_id, WaiterConfig={'Delay': 1, 'MaxAttempts': 900})
+        waiter.wait(Bucket=S3_BUCKET_NAME, Key=self.operator.operator_id, WaiterConfig={'Delay': 1, 'MaxAttempts': 900})
 
 
 @executor('lambda')
 class LambdaExecutor(Executor):
+    SYNC_PORT = 11001
+
     def __init__(self):
         super(LambdaExecutor, self).__init__()
 
@@ -52,9 +62,68 @@ class LambdaExecutor(Executor):
         for i in range(num_stages):
             stage = dag.pop()
             for operator in stage:
-                lambda_handle = Lambda(operator, LAMBDA_FUNCTION_NAME, S3_BUCKET_NAME)
+                lambda_handle = Lambda(operator)
                 lambdas.append(lambda_handle)
                 lambda_handle.start()
 
+        self.synchronize_operators(len(lambdas))
+
         for l in lambdas:
             l.join()
+
+    @staticmethod
+    def synchronize_operators(operator_count):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        s.setblocking(False)
+        s.settimeout(300)
+        try:
+            s.bind((socket.gethostname(), LambdaExecutor.SYNC_PORT))
+        except socket.error as ex:
+            print('Bind failed: {}'.format(ex))
+            sys.exit()
+        s.listen(5)
+        inputs = [s]
+        outputs = []
+        ready = []
+        ids = set()
+        run = True
+        while run:
+            readable, writable, exceptional = select.select(inputs, outputs, inputs)
+            for r in readable:
+                if r is s:
+                    sock, address = r.accept()
+                    sock.setblocking(False)
+                    inputs.append(sock)
+                else:
+                    data = r.recv(4096)
+                    msg = bytes_to_str(data.rstrip().lstrip())
+                    if not data:
+                        inputs.remove(r)
+                        r.close()
+                    else:
+                        print('DEBUG: [{}]'.format(msg))
+                        op = int(msg.split('READY:')[1])
+                        print('... Operator={} ready ...'.format(op))
+                        if op not in ids:
+                            print('... Queuing function id={} ...'.format(op))
+                            ids.add(op)
+                            ready.append((op, r))
+                            if len(ids) == operator_count:
+                                run = False
+                            else:
+                                print('.. Progress {}/{}'.format(len(ids), operator_count))
+                        else:
+                            print('... Aborting function id={} ...'.format(op))
+                            r.send(b('ABORT'))
+                            inputs.remove(r)
+                            r.close()
+
+        print('.. Starting benchmark ..')
+        ready.sort(key=lambda x: x[0])
+        for op in range(operator_count):
+            op, sock = ready[op]
+            print('... Running Operator={} ...'.format(op))
+            sock.send(b('RUN'))
+
+        s.close()
