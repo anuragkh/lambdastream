@@ -10,9 +10,13 @@ def invoke_lambda(event):
 
 
 def write_to_s3(key, data):
-    boto3.resource('s3').Bucket(S3_BUCKET_NAME).put_object(Key=key, Body=data)
+    boto3.resource('s3').Object(S3_BUCKET_NAME, key).put(Body=data)
+
+
+def read_from_s3(key):
+    return boto3.resource('s3').Object(S3_BUCKET_NAME, key).get()['Body'].read()
 
 
 def wait_for_s3_object(key):
-    waiter = boto3.client('s3').get_waiter('object_exists')
-    waiter.wait(Bucket=S3_BUCKET_NAME, Key=key, WaiterConfig={'Delay': 1, 'MaxAttempts': 900})
+    boto3.client('s3').get_waiter('object_exists').wait(Bucket=S3_BUCKET_NAME, Key=key,
+                                                        WaiterConfig={'Delay': 1, 'MaxAttempts': 900})
