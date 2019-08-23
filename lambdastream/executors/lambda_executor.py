@@ -77,7 +77,7 @@ class LambdaExecutor(Executor):
                     inputs.append(sock)
                 else:
                     data = r.recv(4096)
-                    msg = data.rstrip().lstrip().encode()
+                    msg = data.rstrip().lstrip()
                     if not data:
                         inputs.remove(r)
                         r.close()
