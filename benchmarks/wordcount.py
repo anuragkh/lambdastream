@@ -1,4 +1,5 @@
 import argparse
+import itertools
 import logging
 import socket
 import time
@@ -122,7 +123,15 @@ def main():
         start = time.time()
         res = word_count.exec(dag)
         if res is not None:
-            print('Result: {}'.format(res))
+            throughputs, latencies = res
+            # Compute source throughputs
+            source_throughputs = [throughputs[key] for key in throughputs.keys() if key.startswith('source')]
+            # Compute latencies
+            sink_latencies = latencies.values()
+            avg_latencies = [sum(l) / len(l) for l in sink_latencies]
+            print('THROUGHPUT:: Total: {}, Breakdown: {}'.format(source_throughputs, sum(source_throughputs)))
+            print('LANTENCY:: Total Avg.: {}, Breakdown: {}'.format(avg_latencies,
+                                                                    sum(avg_latencies) / len(avg_latencies)))
         else:
             total = time.time() - start
             throughput = float(args.num_records) / total
