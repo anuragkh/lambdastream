@@ -1,6 +1,7 @@
 role_arn = arn:aws:iam::123456789012:role/RoleName
 
 package: clean
+	pip3 install external/jiffy --target packages
 	LAMBDA_INSTALL=true pip3 install . --target packages
 	cd packages && zip -r9 ../function.zip .
 

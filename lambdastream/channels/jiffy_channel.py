@@ -1,6 +1,6 @@
 from lambdastream.channels.channel import DataChannelContext, InputChannel, OutputChannel, channel_context, \
     input_channel, output_channel
-from lambdastream.channels.jiffy import JiffyClient
+from jiffy import JiffyClient
 
 
 @channel_context('jiffy')
@@ -15,7 +15,7 @@ class JiffyChannelContext(DataChannelContext):
 
     def init(self):
         self.jiffy_client = JiffyClient(self.host, self.service_port, self.lease_port)
-        self.jiffy_client.create_blocking_queue(self.path, 'local://tmp')
+        self.jiffy_client.create_blocking_queue(self.path, 'local://jiffy')
 
     def destroy(self):
         self.jiffy_client.remove(self.path)
