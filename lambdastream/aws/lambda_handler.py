@@ -24,7 +24,9 @@ def operator_handler(event, context):
     sock.connect((host, port))
 
     print('Sending READY message...')
-    sock.send('READY:{}'.format(operator_id).encode())
+    msg = 'READY:{}'.format(operator_id)
+    print('DEBUG: {}'.format(msg))
+    sock.send(msg.encode())
     msg = sock.recv(1024)
     if msg != b'RUN':
         print('Expected {}, got {}'.format(b'RUN', msg))
