@@ -4,6 +4,7 @@ import sys
 
 import cloudpickle
 
+from lambdastream.aws.config import LAMBDA_SYNC_PORT
 from lambdastream.aws.utils import invoke_lambda, write_to_s3, wait_for_s3_object
 from lambdastream.channels.jiffy.storage.compat import bytes_to_str, b
 from lambdastream.executors.executor import Executor, executor
@@ -56,7 +57,7 @@ class LambdaExecutor(Executor):
         s.setblocking(False)
         s.settimeout(300)
         try:
-            s.bind((socket.gethostname(), LambdaExecutor.SYNC_PORT))
+            s.bind((socket.gethostname(), LAMBDA_SYNC_PORT))
         except socket.error as ex:
             print('Bind failed: {}'.format(ex))
             sys.exit()
