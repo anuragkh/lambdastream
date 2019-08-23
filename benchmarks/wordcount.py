@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO,
 
 
 def build_dag(**kwargs):
-    channel = kwargs.get('channels', 'redis')
+    channel = kwargs.get('channel', 'redis')
     num_mappers = kwargs.get('num_mappers', 1)
     num_reducers = kwargs.get('num_reducers', 1)
     batch_size = kwargs.get('batch_size', 64)
