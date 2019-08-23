@@ -12,8 +12,8 @@ from lambdastream.executors.executor import Executor, executor
 
 
 def dummy_handler(event, context):
-    sys.stdout = open(event.get('stream_operator') + ".out", "a", buffering=0)
-    sys.stderr = open(event.get('stream_operator') + ".err", "a", buffering=0)
+    sys.stdout = open(event.get('stream_operator') + ".out", "a", buffering=1)
+    sys.stderr = open(event.get('stream_operator') + ".err", "a", buffering=1)
     return operator_handler(event, context)
 
 
