@@ -30,10 +30,11 @@ class DummyLambda(object):
         e = dict(stream_operator=self.operator.operator_id, host=self.host)
         print('Invoking aws with payload: {}...'.format(e))
         self.handle = Process(target=dummy_handler, args=(e, None, ))
-        invoke_lambda(e)
+        self.handle.start()
 
     def join(self):
         wait_for_s3_object(self.operator.operator_id + '.out')
+        self.handle.join()
 
 
 @executor('dummy_lambda')
