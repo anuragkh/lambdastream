@@ -1,11 +1,11 @@
 import logging
 
-from lambdastream.channels.channel import ChannelBuilder, REGISTERED_CHANNELS
+from operator.channels.channel import ChannelBuilder, REGISTERED_CHANNELS
 from lambdastream.config import LOG_LEVEL
 from lambdastream.dag import DAGBuilder
 from lambdastream.executors.executor import REGISTERED_EXECUTORS
-from lambdastream.operator import RoundRobinPartitioner
 from lambdastream.stream import Stream
+from operator.operator import RoundRobinPartitioner
 
 logging.basicConfig(level=LOG_LEVEL,
                     format="%(asctime)s %(levelname)s %(name)s %(message)s",

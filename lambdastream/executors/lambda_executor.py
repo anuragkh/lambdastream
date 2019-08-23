@@ -4,9 +4,8 @@ import sys
 
 import cloudpickle
 
-from lambdastream.aws.config import LAMBDA_SYNC_PORT
-from lambdastream.aws.utils import invoke_lambda, write_to_s3, wait_for_s3_object
-from lambdastream.channels.jiffy.storage.compat import bytes_to_str, b
+from operator.aws.config import LAMBDA_SYNC_PORT
+from operator.aws.utils import invoke_lambda, write_to_s3, wait_for_s3_object
 from lambdastream.executors.executor import Executor, executor
 
 
@@ -76,7 +75,7 @@ class LambdaExecutor(Executor):
                     inputs.append(sock)
                 else:
                     data = r.recv(4096)
-                    msg = bytes_to_str(data.rstrip().lstrip())
+                    msg = data.rstrip().lstrip().decode()
                     if not data:
                         inputs.remove(r)
                         r.close()
@@ -94,7 +93,7 @@ class LambdaExecutor(Executor):
                                 print('.. Progress {}/{}'.format(len(ids), operator_count))
                         else:
                             print('... Aborting function id={} ...'.format(op))
-                            r.send(b('ABORT'))
+                            r.send(b'ABORT')
                             inputs.remove(r)
                             r.close()
 
@@ -103,6 +102,6 @@ class LambdaExecutor(Executor):
         for op in range(operator_count):
             op, sock = ready[op]
             print('... Running Operator={} ...'.format(op))
-            sock.send(b('RUN'))
+            sock.send(b'RUN')
 
         s.close()

@@ -2,7 +2,7 @@ import json
 
 import boto3
 
-from lambdastream.aws.config import LAMBDA_FUNCTION_NAME, S3_BUCKET_NAME
+from operator.aws.config import LAMBDA_FUNCTION_NAME, S3_BUCKET_NAME
 
 
 def invoke_lambda(event):

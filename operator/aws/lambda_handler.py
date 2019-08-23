@@ -3,8 +3,7 @@ import socket
 import boto3
 from cloudpickle import cloudpickle
 
-from lambdastream.aws.config import LAMBDA_SYNC_PORT, S3_BUCKET_NAME
-from lambdastream.channels.jiffy.storage.compat import b
+from operator.aws.config import LAMBDA_SYNC_PORT, S3_BUCKET_NAME
 
 
 def operator_handler(event, context):
@@ -25,9 +24,9 @@ def operator_handler(event, context):
     sock.connect((host, port))
 
     print('Sending READY message...')
-    sock.send(b('READY:{}'.format(operator_id)))
+    sock.send('READY:{}'.format(operator_id).encode())
     msg = sock.recv(1024)
-    if msg != b('RUN'):
+    if msg != b'RUN':
         print('Aborting operator...')
     print('Running operator...')
     operator_out = operator.run()

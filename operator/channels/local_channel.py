@@ -1,6 +1,6 @@
 import queue
 
-from lambdastream.channels.channel import DataChannelContext, InputChannel, OutputChannel, output_channel, \
+from operator.channels import DataChannelContext, InputChannel, OutputChannel, output_channel, \
     input_channel, channel_context
 
 

@@ -1,6 +1,6 @@
-from lambdastream.channels.channel import DataChannelContext, InputChannel, OutputChannel, channel_context, \
+from operator.channels import DataChannelContext, InputChannel, OutputChannel, channel_context, \
     input_channel, output_channel
-from lambdastream.channels.jiffy import JiffyClient
+from jiffy import JiffyClient
 
 
 @channel_context('jiffy')
