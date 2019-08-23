@@ -34,6 +34,7 @@ def operator_handler(event, context):
         return
     print('Running operator...')
     operator_out = operator.run()
+    print('Operator output: {}'.format(operator_out))
     print('Outputting output to S3...')
     write_to_s3(operator.operator_id + '.out', cloudpickle.dumps(operator_out))
     print('All done!')
