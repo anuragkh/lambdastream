@@ -27,9 +27,12 @@ def operator_handler(event, context):
     sock.send('READY:{}'.encode())
     msg = sock.recv(1024)
     if msg != b'RUN':
+        print('Expected {}, got {}'.format(b'RUN', msg))
         print('Aborting operator...')
+        return
     print('Running operator...')
     operator_out = operator.run()
     print('Outputting output to S3...')
     write_to_s3(operator.operator_id + '.out', cloudpickle.dumps(operator_out))
     print('All done!')
+    return
