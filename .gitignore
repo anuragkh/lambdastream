@@ -1,3 +1,9 @@
 .idea
 .vscode
 cmake-build-debug
+build
+packages
+function.zip
+__pycache__
+*.egg-info
+*.so

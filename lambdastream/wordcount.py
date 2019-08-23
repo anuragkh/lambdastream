@@ -22,6 +22,7 @@ class WordSource(object):
             cpu_affinity(cpu_indices)
 
         self.idx = idx
+        self.operator_id = op_id
 
         with open(words_file) as f:
             self.words = []
@@ -81,6 +82,7 @@ class StreamOperator(object):
             cpu_affinity(cpu_indices)
 
         self.idx = idx
+        self.operator_id = op_id
         self.in_queue = channel_builder.build_input_channel(op_id)
         self.out_queues = [channel_builder.build_output_channel(name) for name in out_op_ids]
         self.num_out = len(self.out_queues)
