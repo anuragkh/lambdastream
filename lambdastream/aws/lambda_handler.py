@@ -4,6 +4,7 @@ import boto3
 from cloudpickle import cloudpickle
 
 from lambdastream.aws.config import LAMBDA_SYNC_PORT, S3_BUCKET_NAME
+from lambdastream.channels.jiffy.storage.compat import b
 
 
 def operator_handler(event, context):

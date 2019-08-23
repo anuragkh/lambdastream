@@ -6,7 +6,7 @@ from lambdastream.aws.config import LAMBDA_FUNCTION_NAME, S3_BUCKET_NAME
 
 
 def invoke_lambda(event):
-    boto3.client('aws').invoke(FunctionName=LAMBDA_FUNCTION_NAME, InvocationType='Event', Payload=json.dumps(event))
+    boto3.client('lambda').invoke(FunctionName=LAMBDA_FUNCTION_NAME, InvocationType='Event', Payload=json.dumps(event))
 
 
 def write_to_s3(key, data):
