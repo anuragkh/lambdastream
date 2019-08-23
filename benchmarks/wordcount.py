@@ -115,6 +115,7 @@ def main():
     dag, contexts = build_dag(**vars(args))
 
     word_count = REGISTERED_EXECUTORS[args.executor](**vars(args))
+    result_prefix = args.channel + '_batch' + args.batch_size + '_mapper' + args.num_mappers + '_reducer' + args.num_reducers
 
     for ctx in contexts:
         ctx.init()
@@ -128,10 +129,22 @@ def main():
             source_throughputs = [throughputs[key] for key in throughputs.keys() if key.startswith('source')]
             # Compute latencies
             sink_latencies = latencies.values()
+
+            def flatten(l):
+                return [item for sublist in l for item in sublist]
+
+            flattened = flatten(sink_latencies)
             avg_latencies = [sum(l) / len(l) for l in sink_latencies]
-            print('THROUGHPUT:: Total: {}, Breakdown: {}'.format(source_throughputs, sum(source_throughputs)))
-            print('LANTENCY:: Total Avg.: {}, Breakdown: {}'.format(avg_latencies,
-                                                                    sum(avg_latencies) / len(avg_latencies)))
+            print('THROUGHPUT:: Total: {}, Breakdown: {}'.format(sum(source_throughputs), source_throughputs))
+            print('LANTENCY:: Total Avg.: {}, Breakdown: {}'.format(sum(avg_latencies) / len(avg_latencies),
+                                                                    avg_latencies))
+            with open(result_prefix + '_throughput.txt', 'w') as out:
+                for t in source_throughputs:
+                    out.write('{}\n'.format(t))
+
+            with open(result_prefix + '_latency.txt', 'w') as out:
+                for l in flattened:
+                    out.write('{}\n'.format(l))
         else:
             total = time.time() - start
             throughput = float(args.num_records) / total
