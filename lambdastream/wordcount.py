@@ -4,9 +4,9 @@ import time
 import msgpack
 import numpy as np
 
-from operator.channels.channel import REGISTERED_CHANNELS, ChannelBuilder
-from operator.constants import DONE_MARKER
-from operator.wordcount_ops import cython_process_batch_reduce, cython_process_batch_map
+from lambdastream.channels.channel import REGISTERED_CHANNELS, ChannelBuilder
+from lambdastream.constants import DONE_MARKER
+from lambdastream.wordcount_ops import cython_process_batch_reduce, cython_process_batch_map
 
 SENTENCE_LENGTH = 100
 WORDS = {}

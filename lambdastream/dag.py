@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from operator.operator import REGISTERED_OPERATORS
+from lambdastream.operator import REGISTERED_OPERATORS
 
 
 class StageBuilder(ABC):

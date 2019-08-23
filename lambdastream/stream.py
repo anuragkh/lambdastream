@@ -1,4 +1,4 @@
-from operator.operator import RoundRobinPartitioner
+from lambdastream.operator import RoundRobinPartitioner
 from lambdastream.utils import random_string
 
 
