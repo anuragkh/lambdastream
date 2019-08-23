@@ -5,6 +5,7 @@ import sys
 import cloudpickle
 
 from lambdastream.aws.config import LAMBDA_SYNC_PORT
+from lambdastream.aws.s3_backend import S3Backend
 from lambdastream.aws.utils import invoke_lambda, write_to_s3, wait_for_s3_object
 from lambdastream.executors.executor import Executor, executor
 
@@ -12,11 +13,12 @@ from lambdastream.executors.executor import Executor, executor
 class Lambda(object):
     def __init__(self, operator):
         self.operator = operator
+        self.s3 = S3Backend()
 
     def start(self):
         pickled = cloudpickle.dumps(self.operator)
         print('Writing pickled operator for {} to S3 ({} bytes)...'.format(self.operator.operator_id, len(pickled)))
-        write_to_s3(self.operator.operator_id + '.in', pickled)
+        self.s3.put_object(self.operator.operator_id + '.in', pickled)
         e = dict(stream_operator=self.operator.operator_id, host=socket.gethostname())
         print('Invoking aws with payload: {}...'.format(e))
         invoke_lambda(e)
