@@ -2,7 +2,8 @@ import socket
 
 import cloudpickle
 
-from lambdastream.aws.utils import invoke_lambda, wait_for_s3_object, write_to_s3, synchronize_operators, read_from_s3
+from lambdastream.aws.utils import invoke_lambda, wait_for_s3_object, write_to_s3, synchronize_operators, read_from_s3, \
+    delete_from_s3
 from lambdastream.executors.executor import Executor, executor
 
 
@@ -14,6 +15,10 @@ class Lambda(object):
         self.lat = None
 
     def start(self):
+        # Cleanup any prior state
+        delete_from_s3(self.operator.operator_id + '.in')
+        delete_from_s3(self.operator.operator_id + '.out')
+
         pickled = cloudpickle.dumps(self.operator)
         print('Writing pickled operator for {} to S3 ({} bytes)...'.format(self.operator.operator_id, len(pickled)))
         write_to_s3(self.operator.operator_id + '.in', pickled)
