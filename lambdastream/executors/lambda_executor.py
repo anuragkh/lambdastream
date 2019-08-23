@@ -50,4 +50,4 @@ class LambdaExecutor(Executor):
             l.join()
 
         print('All lambdas completed')
-        return {l.throughput(): l.operator.operator_id for l in lambdas}
+        return {l.operator.operator_id: l.throughput() for l in lambdas}
