@@ -15,7 +15,6 @@ from lambdastream.executors.executor import Executor, executor
 def dummy_handler(event, context):
     sys.stdout = open(event.get('stream_operator') + ".out", "a", buffering=1)
     sys.stderr = open(event.get('stream_operator') + ".err", "a", buffering=1)
-    time.sleep(3)
     return operator_handler(event, context)
 
 
@@ -46,6 +45,7 @@ class DummyLambdaExecutor(Executor):
         self.host = kwargs.get('sync_host', socket.gethostname())
 
     def exec(self, dag):
+        sync_worker = Process(target=synchronize_operators, args=(self.host, sum(map(len, dag))))
         lambdas = []
         num_stages = len(dag)
         for i in range(num_stages):
@@ -55,8 +55,8 @@ class DummyLambdaExecutor(Executor):
                 lambdas.append(lambda_handle)
                 lambda_handle.start()
 
-        print('Invoked {} lambdas, starting synchronization...'.format(len(lambdas)))
-        synchronize_operators(self.host, len(lambdas))
+        print('Invoked {} lambdas, waiting for synchronization...'.format(len(lambdas)))
+        sync_worker.join()
         print('Synchronization complete, waiting for lambdas to finish...')
 
         for l in lambdas:
