@@ -29,7 +29,7 @@ class DummyLambda(object):
         write_to_s3(self.operator.operator_id + '.in', pickled)
         e = dict(stream_operator=self.operator.operator_id, host=self.host)
         print('Invoking aws with payload: {}...'.format(e))
-        self.handle = Process(target=dummy_handler, args={e, None})
+        self.handle = Process(target=dummy_handler, args=(e, None, ))
         invoke_lambda(e)
 
     def join(self):
