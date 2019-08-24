@@ -83,8 +83,8 @@ def process_results(res, result_prefix):
     all_sink_latencies = flatten(sink_latencies)
 
     # Compute average operator read/write latencies
-    avg_read_latencies = {op: sum(values) for op, values in read_latencies.items()}
-    avg_write_latencies = {op: sum(values) for op, values in write_latencies.items()}
+    avg_read_latencies = {op: sum(values) / len(values) for op, values in read_latencies.items()}
+    avg_write_latencies = {op: sum(values) / len(values) for op, values in write_latencies.items()}
 
     avg_latencies = [sum(l) / len(l) for l in sink_latencies]
     print('THROUGHPUT:: Total: {}, Breakdown: {}'.format(sum(source_throughputs), source_throughputs))
@@ -212,10 +212,11 @@ def main():
 
     word_count = REGISTERED_EXECUTORS[args.executor](**vars(args))
     pathlib.Path('results').mkdir(parents=True, exist_ok=True)
-    pathlib.Path('results/' + args.channel).mkdir(parents=True, exist_ok=True)
-    pathlib.Path('results/' + args.channel + '/' + args.executor).mkdir(parents=True, exist_ok=True)
-    result_prefix = 'results/' + args.channel + '/' + args.executor + '/batch' + str(args.batch_size) + '_mapper' + str(
-        args.num_mappers) + '_reducer' + str(args.num_reducers)
+    pathlib.Path('results/' + args.executor).mkdir(parents=True, exist_ok=True)
+    pathlib.Path('results/' + args.executor + '/' + args.channel).mkdir(parents=True, exist_ok=True)
+    result_dir = 'results/' + args.executor + '/' + args.channel
+    result_prefix = result_dir + '/batch' + str(args.batch_size) + '_mapper' + str(args.num_mappers) + '_reducer' + str(
+        args.num_reducers)
 
     for ctx in contexts:
         ctx.init()
