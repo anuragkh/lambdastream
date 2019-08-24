@@ -83,8 +83,8 @@ def process_results(res, result_prefix):
     all_sink_latencies = flatten(sink_latencies)
 
     # Compute average operator read/write latencies
-    avg_read_latencies = {op: sum(values) for op, values in read_latencies}
-    avg_write_latencies = {op: sum(values) for op, values in write_latencies}
+    avg_read_latencies = {op: sum(values) for op, values in read_latencies.items()}
+    avg_write_latencies = {op: sum(values) for op, values in write_latencies.items()}
 
     avg_latencies = [sum(l) / len(l) for l in sink_latencies]
     print('THROUGHPUT:: Total: {}, Breakdown: {}'.format(sum(source_throughputs), source_throughputs))
