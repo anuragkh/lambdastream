@@ -6,8 +6,9 @@ from multiprocessing import Process
 import cloudpickle
 
 from lambdastream.aws.lambda_handler import operator_handler
-from lambdastream.aws.utils import wait_for_s3_object, write_to_s3, synchronize_operators, read_from_s3, delete_from_s3
+from lambdastream.aws.utils import wait_for_s3_object, read_from_s3, write_to_s3, synchronize_operators
 from lambdastream.executors.executor import Executor, executor
+from lambdastream.utils import random_string
 
 
 def dummy_handler(event, context):
@@ -18,9 +19,12 @@ def dummy_handler(event, context):
 
 
 class DummyLambda(object):
-    def __init__(self, operator, host):
+    def __init__(self, operator, host, path_prefix):
         self.operator = operator
         self.host = host
+        self.path_prefix = path_prefix
+        self.input_path = path_prefix + operator.operator_id + '.in'
+        self.output_path = path_prefix + operator.operator_id + '.out'
         self.handle = None
         self.throughput = None
         self.latency = None
@@ -28,22 +32,18 @@ class DummyLambda(object):
         self.write_latency = None
 
     def start(self):
-        # Cleanup any prior state
-        delete_from_s3(self.operator.operator_id + '.in')
-        delete_from_s3(self.operator.operator_id + '.out')
-
         pickled = cloudpickle.dumps(self.operator)
-        print('Writing pickled operator for {} to S3 ({} bytes)...'.format(self.operator.operator_id, len(pickled)))
-        write_to_s3(self.operator.operator_id + '.in', pickled)
-        e = dict(stream_operator=self.operator.operator_id, host=self.host)
+        print('Writing pickled operator for {} to S3 ({} bytes)...'.format(self.input_path, len(pickled)))
+        write_to_s3(self.input_path, pickled)
+        e = dict(stream_operator=self.operator.operator_id, host=self.host, path_prefix=self.path_prefix)
         print('Invoking aws with payload: {}...'.format(e))
         self.handle = Process(target=dummy_handler, args=(e, None,))
         self.handle.start()
 
     def join(self):
-        wait_for_s3_object(self.operator.operator_id + '.out')
+        wait_for_s3_object(self.output_path)
         self.throughput, self.latency, self.read_latency, self.write_latency = cloudpickle.loads(
-            read_from_s3(self.operator.operator_id + '.out'))
+            read_from_s3(self.output_path))
 
 
 @executor('dummy_lambda')
@@ -57,10 +57,11 @@ class DummyLambdaExecutor(Executor):
         sync_worker.start()
         lambdas = []
         num_stages = len(dag)
+        path_prefix = random_string() + '/'
         for i in range(num_stages):
             stage = dag.pop()
             for operator in stage:
-                lambda_handle = DummyLambda(operator, self.host)
+                lambda_handle = DummyLambda(operator, self.host, path_prefix)
                 lambdas.append(lambda_handle)
                 lambda_handle.start()
 

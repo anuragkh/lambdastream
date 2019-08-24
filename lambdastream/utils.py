@@ -4,7 +4,7 @@ import string
 from lambdastream.constants import DONE_MARKER
 
 
-def random_string(length=5):
+def random_string(length=16):
     """Generate a random string of fixed length """
     return ''.join(random.choice(string.ascii_lowercase) for _ in range(length))
 

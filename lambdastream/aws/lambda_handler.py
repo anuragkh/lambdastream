@@ -8,7 +8,9 @@ from lambdastream.aws.utils import read_from_s3, write_to_s3
 
 def operator_handler(event, context):
     operator_id = event.get('stream_operator')
-    operator_in = operator_id + '.in'
+    path_prefix = event.get('path_prefix')
+    operator_in = path_prefix + operator_id + '.in'
+    operator_out = path_prefix + operator_id + '.out'
     host = event.get('host')
     port = LAMBDA_SYNC_PORT
 
@@ -33,10 +35,10 @@ def operator_handler(event, context):
         print('Aborting operator...')
         return
     print('Running operator...')
-    operator_out = operator.run()
-    print('Operator output: {}'.format(operator_out))
-    print('Outputting output to S3 @ {}...'.format(operator.operator_id + '.out'))
-    write_to_s3(operator.operator_id + '.out', cloudpickle.dumps(operator_out))
+    operator_out_data = operator.run()
+    print('Operator execution complete!')
+    print('Writing operator output to S3 @ {}...'.format(operator_out))
+    write_to_s3(operator_out, cloudpickle.dumps(operator_out_data))
     msg = 'DONE:{}'.format(operator_id)
     sock.send(msg.encode())
     print('All done!')
