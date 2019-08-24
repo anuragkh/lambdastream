@@ -14,15 +14,19 @@ def invoke_lambda(event):
 
 def write_to_s3(key, data):
     boto3.resource('s3').Object(S3_BUCKET_NAME, key).put(Body=data)
+    print('Wrote {} to s3'.format(key))
 
 
 def read_from_s3(key):
-    return boto3.resource('s3').Object(S3_BUCKET_NAME, key).get()['Body'].read()
+    data = boto3.resource('s3').Object(S3_BUCKET_NAME, key).get()['Body'].read()
+    print('Read {} from s3'.format(key))
+    return data
 
 
 def delete_from_s3(key, silent=True):
     try:
         boto3.resource('s3').Object(S3_BUCKET_NAME, key).delete()
+        print('Deleted {} from s3'.format(key))
     except Exception as e:
         if not silent:
             raise e

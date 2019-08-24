@@ -41,6 +41,7 @@ class DummyLambda(object):
         self.handle.start()
 
     def join(self):
+        wait_for_s3_object(self.operator.operator_id + '.out')
         self.throughput, self.latency, self.read_latency, self.write_latency = cloudpickle.loads(
             read_from_s3(self.operator.operator_id + '.out'))
 
