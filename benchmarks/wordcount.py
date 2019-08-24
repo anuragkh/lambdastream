@@ -212,7 +212,9 @@ def main():
 
     word_count = REGISTERED_EXECUTORS[args.executor](**vars(args))
     pathlib.Path('results').mkdir(parents=True, exist_ok=True)
-    result_prefix = 'results/' + args.channel + '_batch' + str(args.batch_size) + '_mapper' + str(
+    pathlib.Path('results/' + args.channel).mkdir(parents=True, exist_ok=True)
+    pathlib.Path('results/' + args.channel + '/' + args.executor).mkdir(parents=True, exist_ok=True)
+    result_prefix = 'results/' + args.channel + '/' + args.executor + '/batch' + str(args.batch_size) + '_mapper' + str(
         args.num_mappers) + '_reducer' + str(args.num_reducers)
 
     for ctx in contexts:
