@@ -1,4 +1,5 @@
 import socket
+from multiprocessing import Process
 
 import cloudpickle
 
@@ -41,6 +42,8 @@ class LambdaExecutor(Executor):
         self.host = kwargs.get('sync_host', socket.gethostname())
 
     def exec(self, dag):
+        sync_worker = Process(target=synchronize_operators, args=(self.host, sum(map(len, dag))))
+        sync_worker.start()
         lambdas = []
         num_stages = len(dag)
         for i in range(num_stages):
@@ -51,7 +54,7 @@ class LambdaExecutor(Executor):
                 lambda_handle.start()
 
         print('Invoked {} lambdas, starting synchronization...'.format(len(lambdas)))
-        synchronize_operators(self.host, len(lambdas))
+        sync_worker.join()
         print('Synchronization complete, waiting for lambdas to finish...')
 
         for l in lambdas:
@@ -60,5 +63,5 @@ class LambdaExecutor(Executor):
         print('All lambdas completed')
         return {l.operator.operator_id: l.throughput for l in lambdas}, \
                {l.operator.operator_id: l.latency for l in lambdas if l.latency is not None}, \
-               {l.operator.operator_id: l.read_latency for l in lambdas if l.latency is not None}, \
-               {l.operator.operator_id: l.write_latency for l in lambdas if l.latency is not None}
+               {l.operator.operator_id: l.read_latency for l in lambdas if l.read_latency is not None}, \
+               {l.operator.operator_id: l.write_latency for l in lambdas if l.write_latency is not None}

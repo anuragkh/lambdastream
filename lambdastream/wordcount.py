@@ -178,4 +178,4 @@ class Sink(StreamOperator):
 
     def run(self):
         throughput, _, read, write = super(Sink, self).run()
-        return throughput, self.latencies, read, write
+        return throughput, self.latencies, read, None

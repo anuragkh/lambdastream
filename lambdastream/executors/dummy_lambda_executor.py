@@ -74,5 +74,5 @@ class DummyLambdaExecutor(Executor):
         print('All lambdas completed')
         return {l.operator.operator_id: l.throughput for l in lambdas}, \
                {l.operator.operator_id: l.latency for l in lambdas if l.latency is not None}, \
-               {l.operator.operator_id: l.read_latency for l in lambdas if l.latency is not None}, \
-               {l.operator.operator_id: l.write_latency for l in lambdas if l.latency is not None}
+               {l.operator.operator_id: l.read_latency for l in lambdas if l.read_latency is not None}, \
+               {l.operator.operator_id: l.write_latency for l in lambdas if l.write_latency is not None}
