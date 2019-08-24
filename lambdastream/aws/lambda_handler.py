@@ -35,7 +35,7 @@ def operator_handler(event, context):
     print('Running operator...')
     operator_out = operator.run()
     print('Operator output: {}'.format(operator_out))
-    print('Outputting output to S3...')
+    print('Outputting output to S3 @ {}...'.format(operator.operator_id + '.out'))
     write_to_s3(operator.operator_id + '.out', cloudpickle.dumps(operator_out))
     msg = 'DONE:{}'.format(operator_id)
     sock.send(msg.encode())

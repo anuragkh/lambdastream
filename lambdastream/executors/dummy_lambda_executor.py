@@ -41,7 +41,6 @@ class DummyLambda(object):
         self.handle.start()
 
     def join(self):
-        wait_for_s3_object(self.operator.operator_id + '.out')
         self.throughput, self.latency, self.read_latency, self.write_latency = cloudpickle.loads(
             read_from_s3(self.operator.operator_id + '.out'))
 
@@ -64,13 +63,10 @@ class DummyLambdaExecutor(Executor):
                 lambdas.append(lambda_handle)
                 lambda_handle.start()
 
-        print('Invoked {} lambdas, waiting for synchronization...'.format(len(lambdas)))
+        print('Invoked {} lambdas, synchronizing execution...'.format(len(lambdas)))
         sync_worker.join()
-        print('Synchronization complete, waiting for lambdas to finish...')
-
         for l in lambdas:
             l.join()
-
         print('All lambdas completed')
         return {l.operator.operator_id: l.throughput for l in lambdas}, \
                {l.operator.operator_id: l.latency for l in lambdas if l.latency is not None}, \
