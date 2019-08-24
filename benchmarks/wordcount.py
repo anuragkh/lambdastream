@@ -101,12 +101,12 @@ def process_results(res, result_prefix):
 
     for key in read_latencies.keys():
         with open(result_prefix + '_' + key + '_read_latency.txt', 'w') as out:
-            for t in source_throughputs:
+            for t in read_latencies[key]:
                 out.write('{}\n'.format(t))
 
     for key in write_latencies.keys():
         with open(result_prefix + '_' + key + '_write_latency.txt', 'w') as out:
-            for t in source_throughputs:
+            for t in write_latencies[key]:
                 out.write('{}\n'.format(t))
 
 
