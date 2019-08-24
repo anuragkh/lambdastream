@@ -222,27 +222,7 @@ def main():
         start = time.time()
         res = word_count.exec(dag)
         if res is not None:
-            throughputs, latencies, read_latencies, write_latencies = res
-            # Compute source throughputs
-            source_throughputs = [throughputs[key] for key in throughputs.keys() if key.startswith('source')]
-            # Compute latencies
-            sink_latencies = latencies.values()
-
-            def flatten(l):
-                return [item for sublist in l for item in sublist]
-
-            flattened = flatten(sink_latencies)
-            avg_latencies = [sum(l) / len(l) for l in sink_latencies]
-            print('THROUGHPUT:: Total: {}, Breakdown: {}'.format(sum(source_throughputs), source_throughputs))
-            print('LATENCY:: Total Avg.: {}, Breakdown: {}'.format(sum(avg_latencies) / len(avg_latencies),
-                                                                   avg_latencies))
-            with open(result_prefix + '_throughput.txt', 'w') as out:
-                for t in source_throughputs:
-                    out.write('{}\n'.format(t))
-
-            with open(result_prefix + '_latency.txt', 'w') as out:
-                for l in flattened:
-                    out.write('{}\n'.format(l))
+            process_results(res, result_prefix)
         else:
             total = time.time() - start
             throughput = float(args.num_records) / total
