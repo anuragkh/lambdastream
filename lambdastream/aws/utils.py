@@ -91,6 +91,7 @@ def synchronize_operators(host, operator_count):
         print('... Running Operator={} ...'.format(op))
         sock.send(b'RUN')
 
+    run = True
     while run:
         readable, writable, exceptional = select.select(inputs, outputs, inputs)
         for r in readable:
