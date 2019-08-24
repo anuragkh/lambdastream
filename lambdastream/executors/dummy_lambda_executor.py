@@ -1,3 +1,4 @@
+import pathlib
 import socket
 import sys
 from multiprocessing import Process
@@ -10,8 +11,9 @@ from lambdastream.executors.executor import Executor, executor
 
 
 def dummy_handler(event, context):
-    sys.stdout = open(event.get('stream_operator') + ".out", "a", buffering=1)
-    sys.stderr = open(event.get('stream_operator') + ".err", "a", buffering=1)
+    pathlib.Path('logs').mkdir(parents=True, exist_ok=True)
+    sys.stdout = open('logs/' + event.get('stream_operator') + ".out", "a", buffering=1)
+    sys.stderr = open('logs/' + event.get('stream_operator') + ".err", "a", buffering=1)
     return operator_handler(event, context)
 
 
@@ -20,8 +22,10 @@ class DummyLambda(object):
         self.operator = operator
         self.host = host
         self.handle = None
-        self.thput = None
-        self.lat = None
+        self.throughput = None
+        self.latency = None
+        self.read_latency = None
+        self.write_latency = None
 
     def start(self):
         # Cleanup any prior state
@@ -38,13 +42,8 @@ class DummyLambda(object):
 
     def join(self):
         wait_for_s3_object(self.operator.operator_id + '.out')
-        self.thput, self.lat = cloudpickle.loads(read_from_s3(self.operator.operator_id + '.out'))
-
-    def throughput(self):
-        return self.thput
-
-    def latency(self):
-        return self.lat
+        self.throughput, self.latency, self.read_latency, self.write_latency = cloudpickle.loads(
+            read_from_s3(self.operator.operator_id + '.out'))
 
 
 @executor('dummy_lambda')
@@ -73,5 +72,7 @@ class DummyLambdaExecutor(Executor):
             l.join()
 
         print('All lambdas completed')
-        return {l.operator.operator_id: l.throughput() for l in lambdas}, {l.operator.operator_id: l.latency() for l in
-                                                                           lambdas if l.latency() is not None}
+        return {l.operator.operator_id: l.throughput for l in lambdas}, \
+               {l.operator.operator_id: l.latency for l in lambdas if l.latency is not None}, \
+               {l.operator.operator_id: l.read_latency for l in lambdas if l.latency is not None}, \
+               {l.operator.operator_id: l.write_latency for l in lambdas if l.latency is not None}

@@ -31,6 +31,7 @@ class WordSource(object):
         self.num_flushes = 0
         self.num_records_seen = 0
         self.num_records_since_timestamp = 0
+        self.write_latencies = []
 
         # Set the seed so that we can deterministically generate the sentences.
         np.random.seed(0)
@@ -50,6 +51,9 @@ class WordSource(object):
                 timestamp = time.time()
                 self.num_records_since_timestamp -= self.timestamp_interval
             self.out_queues[self.num_flushes % len(self.out_queues)].put(msgpack.packb((timestamp, batch)))
+            if timestamp > 0:
+                write_time = time.time() - timestamp
+                self.write_latencies.append(write_time)
             self.num_flushes += 1
             self.num_records_seen += len(batch)
             self.num_records_since_timestamp += len(batch)
@@ -57,7 +61,7 @@ class WordSource(object):
         timestamp = time.time()
         [q.put(msgpack.packb((timestamp, DONE_MARKER))) for q in self.out_queues]
         [q.flush() for q in self.out_queues]
-        return self.num_records_seen / (time.time() - start_time), None
+        return self.num_records_seen / (time.time() - start_time), None, None, self.write_latencies
 
     def num_records_seen(self):
         return self.num_records_seen
@@ -73,6 +77,8 @@ class StreamOperator(object):
         self.in_queue = channel_builder.build_input_channel(op_id)
         self.out_queues = [channel_builder.build_output_channel(name) for name in out_op_ids]
         self.num_out = len(self.out_queues)
+        self.read_latencies = []
+        self.write_latencies = []
         self.upstream_count = upstream_count
         self.num_done_markers = 0
         self.num_records_seen = 0
@@ -84,7 +90,10 @@ class StreamOperator(object):
         done = False
         start_time = time.time()
         while not done:
+            read_begin = time.time()
             timestamp, batch = msgpack.unpackb(self.in_queue.get())
+            if timestamp > 0:
+                self.read_latencies.append(time.time() - read_begin)
             if DONE_MARKER == batch:
                 self.num_done_markers += 1
                 if self.num_done_markers == self.upstream_count:
@@ -93,13 +102,16 @@ class StreamOperator(object):
                 processed_batch = self.process_batch(timestamp, batch)
                 self.num_records_seen += len(batch)
                 for record in processed_batch:
+                    write_begin = time.time()
                     self.out_queues[self.key(record)].put(msgpack.packb((timestamp, record)))
+                    if timestamp > 0:
+                        self.write_latencies.append(time.time() - write_begin)
 
             if done:
                 for q in self.out_queues:
                     q.put(msgpack.packb((timestamp, DONE_MARKER)))
                     q.flush()
-        return self.num_records_seen / (time.time() - start_time), None
+        return self.num_records_seen / (time.time() - start_time), None, self.read_latencies, self.write_latencies
 
     def ping(self):
         return
@@ -165,5 +177,5 @@ class Sink(StreamOperator):
         return []
 
     def run(self):
-        throughput, _ = super(Sink, self).run()
-        return throughput, self.latencies
+        throughput, _, read, write = super(Sink, self).run()
+        return throughput, self.latencies, read, write

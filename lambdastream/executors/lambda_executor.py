@@ -11,8 +11,10 @@ class Lambda(object):
     def __init__(self, operator, host):
         self.operator = operator
         self.host = host
-        self.thput = None
-        self.lat = None
+        self.throughput = None
+        self.latency = None
+        self.read_latency = None
+        self.write_latency = None
 
     def start(self):
         # Cleanup any prior state
@@ -28,13 +30,8 @@ class Lambda(object):
 
     def join(self):
         wait_for_s3_object(self.operator.operator_id + '.out')
-        self.thput, self.lat = cloudpickle.loads(read_from_s3(self.operator.operator_id + '.out'))
-
-    def throughput(self):
-        return self.thput
-
-    def latency(self):
-        return self.lat
+        self.throughput, self.latency, self.read_latency, self.write_latency = cloudpickle.loads(
+            read_from_s3(self.operator.operator_id + '.out'))
 
 
 @executor('aws_lambda')
@@ -61,5 +58,7 @@ class LambdaExecutor(Executor):
             l.join()
 
         print('All lambdas completed')
-        return {l.operator.operator_id: l.throughput() for l in lambdas}, {l.operator.operator_id: l.latency() for l in
-                                                                           lambdas if l.latency() is not None}
+        return {l.operator.operator_id: l.throughput for l in lambdas}, \
+               {l.operator.operator_id: l.latency for l in lambdas if l.latency is not None}, \
+               {l.operator.operator_id: l.read_latency for l in lambdas if l.latency is not None}, \
+               {l.operator.operator_id: l.write_latency for l in lambdas if l.latency is not None}

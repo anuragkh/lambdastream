@@ -1,5 +1,6 @@
 import argparse
 import logging
+import pathlib
 import socket
 import time
 
@@ -65,6 +66,48 @@ def build_dag(**kwargs):
         sources.append(WordSource(*source_args))
 
     return [sinks, reducers, mappers, sources], [channel_builder.build_channel_ctx(key) for key in all_keys]
+
+
+def flatten(l):
+    return [item for sublist in l for item in sublist]
+
+
+def process_results(res, result_prefix):
+    throughputs, latencies, read_latencies, write_latencies = res
+
+    # compute throughputs
+    source_throughputs = [throughputs[key] for key in throughputs.keys() if key.startswith('source')]
+
+    # Compute latencies
+    sink_latencies = latencies.values()
+    all_sink_latencies = flatten(sink_latencies)
+
+    # Compute average operator read/write latencies
+    avg_read_latencies = {op: sum(values) for op, values in read_latencies}
+    avg_write_latencies = {op: sum(values) for op, values in write_latencies}
+
+    avg_latencies = [sum(l) / len(l) for l in sink_latencies]
+    print('THROUGHPUT:: Total: {}, Breakdown: {}'.format(sum(source_throughputs), source_throughputs))
+    print('LATENCY:: Total Avg.: {}, Breakdown: {}'.format(sum(avg_latencies) / len(avg_latencies), avg_latencies))
+    print('READ LATENCY:: Avg. Breakdown: {}'.format(avg_read_latencies))
+    print('WRITE LATENCY:: Avg. Breakdown: {}'.format(avg_write_latencies))
+    with open(result_prefix + '_throughput.txt', 'w') as out:
+        for t in source_throughputs:
+            out.write('{}\n'.format(t))
+
+    with open(result_prefix + '_latency.txt', 'w') as out:
+        for l in all_sink_latencies:
+            out.write('{}\n'.format(l))
+
+    for key in read_latencies.keys():
+        with open(result_prefix + '_' + key + '_read_latency.txt', 'w') as out:
+            for t in source_throughputs:
+                out.write('{}\n'.format(t))
+
+    for key in write_latencies.keys():
+        with open(result_prefix + '_' + key + '_write_latency.txt', 'w') as out:
+            for t in source_throughputs:
+                out.write('{}\n'.format(t))
 
 
 def main():
@@ -168,7 +211,8 @@ def main():
     dag, contexts = build_dag(**vars(args))
 
     word_count = REGISTERED_EXECUTORS[args.executor](**vars(args))
-    result_prefix = args.channel + '_batch' + str(args.batch_size) + '_mapper' + str(
+    pathlib.Path('results').mkdir(parents=True, exist_ok=True)
+    result_prefix = 'results/' + args.channel + '_batch' + str(args.batch_size) + '_mapper' + str(
         args.num_mappers) + '_reducer' + str(args.num_reducers)
 
     for ctx in contexts:
@@ -178,7 +222,7 @@ def main():
         start = time.time()
         res = word_count.exec(dag)
         if res is not None:
-            throughputs, latencies = res
+            throughputs, latencies, read_latencies, write_latencies = res
             # Compute source throughputs
             source_throughputs = [throughputs[key] for key in throughputs.keys() if key.startswith('source')]
             # Compute latencies
@@ -191,7 +235,7 @@ def main():
             avg_latencies = [sum(l) / len(l) for l in sink_latencies]
             print('THROUGHPUT:: Total: {}, Breakdown: {}'.format(sum(source_throughputs), source_throughputs))
             print('LATENCY:: Total Avg.: {}, Breakdown: {}'.format(sum(avg_latencies) / len(avg_latencies),
-                                                                    avg_latencies))
+                                                                   avg_latencies))
             with open(result_prefix + '_throughput.txt', 'w') as out:
                 for t in source_throughputs:
                     out.write('{}\n'.format(t))
