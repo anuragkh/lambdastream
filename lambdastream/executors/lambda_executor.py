@@ -21,7 +21,6 @@ class Lambda(object):
         self.write_latency = None
 
     def start(self):
-        # Cleanup any prior state
         pickled = cloudpickle.dumps(self.operator)
         print('Writing pickled operator for {} to S3 ({} bytes)...'.format(self.input_path, len(pickled)))
         write_to_s3(self.input_path, pickled)
