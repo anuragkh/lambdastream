@@ -67,7 +67,7 @@ def synchronize_operators(host, operator_count):
                     op = msg.split(b'READY:')[1]
                     print('... Operator={} ready ...'.format(op))
                     if op not in ids:
-                        print('... Queuing function id={} ...'.format(op))
+                        print('... Queuing Operator={} ...'.format(op))
                         ids.add(op)
                         ready.append((op, r))
                         if len(ids) == operator_count:
@@ -75,7 +75,7 @@ def synchronize_operators(host, operator_count):
                         else:
                             print('.. Progress {}/{}'.format(len(ids), operator_count))
                     else:
-                        print('... Aborting function id={} ...'.format(op))
+                        print('... Aborting Operator={} ...'.format(op))
                         r.send(b'ABORT')
                         inputs.remove(r)
                         r.close()
@@ -87,4 +87,33 @@ def synchronize_operators(host, operator_count):
         print('... Running Operator={} ...'.format(op))
         sock.send(b'RUN')
 
+    while run:
+        readable, writable, exceptional = select.select(inputs, outputs, inputs)
+        for r in readable:
+            if r is s:
+                sock, address = r.accept()
+                sock.setblocking(False)
+                inputs.append(sock)
+            else:
+                data = r.recv(4096)
+                msg = data.rstrip().lstrip()
+                if not data:
+                    inputs.remove(r)
+                    r.close()
+                else:
+                    print('DEBUG: [{}]'.format(msg))
+                    op = msg.split(b'DONE:')[1]
+                    print('... Operator={} done ...'.format(op))
+                    if op in ids:
+                        ids.remove(op)
+                        if len(ids) == 0:
+                            run = False
+                        else:
+                            print('.. Progress {}/{}'.format(operator_count - len(ids), operator_count))
+                    else:
+                        print('... Aborting Operator={} ...'.format(op))
+                        r.send(b'ABORT')
+                        inputs.remove(r)
+                        r.close()
+    print('.. All lambdas complete ..')
     s.close()

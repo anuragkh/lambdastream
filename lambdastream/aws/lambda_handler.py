@@ -21,11 +21,11 @@ def operator_handler(event, context):
 
     print('Connecting to host: {}, port: {} for synchronization...'.format(host, port))
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(10.0)
     sock.connect((host, port))
 
     print('Sending READY message...')
     msg = 'READY:{}'.format(operator_id)
-    print('DEBUG: {}'.format(msg))
     sock.send(msg.encode())
     msg = sock.recv(1024)
     if msg != b'RUN':
@@ -37,5 +37,7 @@ def operator_handler(event, context):
     print('Operator output: {}'.format(operator_out))
     print('Outputting output to S3...')
     write_to_s3(operator.operator_id + '.out', cloudpickle.dumps(operator_out))
+    msg = 'DONE:{}'.format(operator_id)
+    sock.send(msg.encode())
     print('All done!')
     return
