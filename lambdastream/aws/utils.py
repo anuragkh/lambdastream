@@ -67,17 +67,15 @@ def synchronize_operators(host, operator_count):
                     inputs.remove(r)
                     r.close()
                 else:
-                    print('DEBUG: [{}]'.format(msg))
                     op = msg.split(b'READY:')[1]
                     print('... Operator={} ready ...'.format(op))
                     if op not in ids:
-                        print('... Queuing Operator={} ...'.format(op))
+                        print('.. Queuing Operator={} ..'.format(op))
+                        print('.. Progress {}/{}'.format(len(ids), operator_count))
                         ids.add(op)
                         ready.append((op, r))
                         if len(ids) == operator_count:
                             run = False
-                        else:
-                            print('.. Progress {}/{}'.format(len(ids), operator_count))
                     else:
                         print('... Aborting Operator={} ...'.format(op))
                         r.send(b'ABORT')
@@ -106,15 +104,13 @@ def synchronize_operators(host, operator_count):
                     inputs.remove(r)
                     r.close()
                 else:
-                    print('DEBUG: [{}]'.format(msg))
                     op = msg.split(b'DONE:')[1]
                     print('... Operator={} done ...'.format(op))
                     if op in ids:
                         ids.remove(op)
+                        print('.. Progress {}/{}'.format(operator_count - len(ids), operator_count))
                         if len(ids) == 0:
                             run = False
-                        else:
-                            print('.. Progress {}/{}'.format(operator_count - len(ids), operator_count))
                     else:
                         print('... Aborting Operator={} ...'.format(op))
                         r.send(b'ABORT')
