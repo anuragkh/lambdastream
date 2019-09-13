@@ -23,7 +23,7 @@ def operator_handler(event, context):
 
     print('Connecting to host: {}, port: {} for synchronization...'.format(host, port))
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(10.0)
+    sock.settimeout(None)
     sock.connect((host, port))
 
     print('Sending READY message...')
