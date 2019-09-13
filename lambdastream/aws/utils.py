@@ -101,7 +101,11 @@ def synchronize_operators(host, operator_count):
                     inputs.remove(r)
                     r.close()
                 else:
-                    op = msg.split(b'DONE:')[1]
+                    try:
+                        op = msg.split(b'DONE:')[1]
+                    except Exception as e:
+                        print('Exception: {}. Message: {}'.format(e, msg))
+                        raise e
                     print('... Operator={} done ...'.format(op))
                     if op in ids:
                         ids.remove(op)
