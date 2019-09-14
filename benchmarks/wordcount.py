@@ -150,22 +150,22 @@ def main():
     )
     parser.add_argument(
         '--redis-host',
-        default='127.0.0.1',
+        default='127.0.0.1:6379:0',
         type=str,
-        help='The host address of redis server'
+        help='The host addresses for redis servers'
     )
-    parser.add_argument(
-        '--redis-port',
-        default=6379,
-        type=int,
-        help='The port for redis server'
-    )
-    parser.add_argument(
-        '--redis-db',
-        default=0,
-        type=int,
-        help='The db number for redis server'
-    )
+    # parser.add_argument(
+    #     '--redis-port',
+    #     default=6379,
+    #     type=int,
+    #     help='The port for redis server'
+    # )
+    # parser.add_argument(
+    #     '--redis-db',
+    #     default=0,
+    #     type=int,
+    #     help='The db number for redis server'
+    # )
     parser.add_argument(
         '--num-mappers',
         default=1,
